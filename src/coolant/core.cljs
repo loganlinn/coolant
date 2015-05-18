@@ -1,6 +1,6 @@
 (ns coolant.core)
 
-(defrecord Core [stores observers state prev-evals])
+(defrecord Core [stores observers state evals])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -26,50 +26,6 @@
   (-store-key [this])
   (-init-state [this])
   (-handle [this state message]))
-
-(defn store
-  "Returns a Store instance to be registered at key, k in core, with initial state, init.
-   handlers is a map from message-type to function taking current state and
-   message-data.
-   The returned Store is evaluatable against the core to get the current state.
-   This means you can use the Store as a dependency to getters."
-  [k init handlers]
-  (reify
-    Store
-    (-store-key [_] k)
-    (-init-state [_] init)
-    (-handle [_ state message]
-      (if-let [handler (get handlers (-message-type message))]
-        (handler state (-message-data message))
-        state))
-    Evaluator
-    (-evaluate [_ state]
-      (get state k))
-    Object
-    (toString [_]
-      (str "Store " (str k)))))
-
-(defn getter
-  "Returns a evaluatable object that produces a value given a non-empty sequence
-   of evaluatable dependencies (ie, stores or other getters) and a function
-   that's invoked whenever one or more dependencies change.
-   The function must be pure."
-  [deps f]
-  {:pre [(seq deps) (every? #(satisfies? Evaluator %) deps) (fn? f)]}
-  (let [mem (atom {})]
-    (reify
-      Evaluator
-      (-evaluate [_ state]
-        (let [args (map #(-evaluate % state) deps)
-              v (get @mem args lookup-sentinel)]
-          (if (identical? v lookup-sentinel)
-            (let [v (apply f args)]
-             (reset! mem {args v}) ;; cache last value. TODO: protocol for diff strategies?
-             v)
-            v)))
-      Object
-      (toString [this]
-        (str "Getter deps: " (pr-str deps))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Core Operations
@@ -129,6 +85,51 @@
   ([stores]
    (atom (reduce add-store (Core. {} [] nil {}) stores))))
 
+(defn store
+  "Returns a Store instance to be registered at key, k in core, with initial state, init.
+   handlers is a map from message-type to function taking current state and
+   message-data.
+   The returned Store is evaluatable against the core to get the current state.
+   This means you can use the Store as a dependency to getters."
+  [k init handlers]
+  (reify
+    Store
+    (-store-key [_] k)
+    (-init-state [_] init)
+    (-handle [_ state message]
+      (if-let [handler (get handlers (-message-type message))]
+        (handler state (-message-data message))
+        state))
+    Evaluator
+    (-evaluate [_ state]
+      (get state k))
+    Object
+    (toString [_]
+      (str "Store " (str k)))))
+
+(defn getter
+  "Returns a evaluatable object that produces a value given a non-empty sequence
+   of evaluatable dependencies (ie, stores or other getters) and a function
+   that's invoked whenever one or more dependencies change.
+   The function must be pure."
+  [deps f]
+  {:pre [(seq deps) (every? #(satisfies? Evaluator %) deps) (fn? f)]}
+  (let [mem (atom {})]
+    (reify
+      Evaluator
+      (-evaluate [_ state]
+        (let [args (map #(-evaluate % state) deps)
+              v (get @mem args lookup-sentinel)]
+          (if (identical? v lookup-sentinel)
+            (let [v (apply f args)]
+             (reset! mem {args v}) ;; cache last value. TODO: protocol for diff strategies?
+             v)
+            v)))
+      Object
+      (toString [this]
+        (str "Getter deps: " (pr-str deps))))))
+
+
 (defn dispatch!
   "Dispatch a message to the registered stores to update state.
    Notifies observers if their watched value has changed.
@@ -165,6 +166,12 @@
      (set-state! core (:state @core)))
    core))
 
+(defn get-state
+  "Returns current state of all stores in core"
+  [core]
+  (:state @core))
+
+;; TODO rename to get? read?
 (defn evaluate
   "Returns value produced by evaluator against current state of core."
   [core evaluator]

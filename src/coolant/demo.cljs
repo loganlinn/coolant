@@ -34,10 +34,6 @@
                    (spy "[store: items]" :clear-items
                         (empty xs)))}))
 
-(comment
- (def core (coolant/core))
- (coolant/register-stores! core [tax-percent items]))
-
 (def core (coolant/core [tax-percent items]))
 
 (def subtotal

@@ -107,6 +107,10 @@
     (toString [_]
       (str "Store " (str k)))))
 
+#?(:clj (def ^:private lookup-sentinel
+          "Clojure equivalent of the ClojureScript lookup sentinel."
+          (gensym "lookup-sentinel")))
+
 (defn getter
   "Returns a evaluatable object that produces a value given a non-empty sequence
    of evaluatable dependencies (ie, stores or other getters) and a function

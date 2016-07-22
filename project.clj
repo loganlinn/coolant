@@ -9,7 +9,7 @@
   :aliases
   {"ci" ["do"
          ["clean"]
-         ["test"]
+         ["test" "coolant.core-test"]
          ["doo" "node" "node" "once"]
          ["doo" "phantom" "none" "once"]
          ["doo" "phantom" "advanced" "once"]]}

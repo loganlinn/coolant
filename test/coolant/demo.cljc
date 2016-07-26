@@ -1,11 +1,7 @@
 (ns coolant.demo
-  (:require [coolant.core :as coolant]
-            [clojure.browser.repl :as repl]))
+  (:require [coolant.core :as coolant]))
 
-(enable-console-print!)
-
-#_
-(defonce conn (repl/connect "http://localhost:9000/repl"))
+#?(:cljs (enable-console-print!))
 
 (defn- spy [& xs]
   (apply println xs)

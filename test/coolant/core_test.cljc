@@ -1,7 +1,7 @@
 (ns coolant.core-test
-  (:require
-   [cljs.test :refer-macros [is deftest testing]]
-   [coolant.core :as coolant]))
+  (:require #?(:clj [clojure.test :refer :all]
+               :cljs [cljs.test :refer-macros [deftest is testing]])
+            [coolant.core :as coolant]))
 
 (defn- arity2 [f] (fn [x _] (f x)))
 (def empty-store (arity2 empty))
